@@ -59,6 +59,7 @@ class _DownloadScreenState extends State<DownloadScreen> {
     }
 
     final hasPermission = await _requestPermissions();
+    if (!mounted) return;
 
     if (!hasPermission) {
       AppToast.show(

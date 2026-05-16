@@ -1,4 +1,8 @@
+import 'dart:convert';
+import 'dart:io';
+import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:path_provider/path_provider.dart';
 
 // ─── Sub-models ──────────────────────────────────────────────────────────────
 
@@ -40,6 +44,30 @@ class Keyframe {
     easeIn: easeIn ?? this.easeIn,
     easeOut: easeOut ?? this.easeOut,
   );
+
+  Map<String, dynamic> toJson() => {
+    'id': id,
+    'timeMs': timeMs,
+    'posX': posX,
+    'posY': posY,
+    'scale': scale,
+    'rotation': rotation,
+    'opacity': opacity,
+    'easeIn': easeIn,
+    'easeOut': easeOut,
+  };
+
+  factory Keyframe.fromJson(Map<String, dynamic> json) => Keyframe(
+    id: json['id'],
+    timeMs: (json['timeMs'] as num).toDouble(),
+    posX: (json['posX'] as num?)?.toDouble() ?? 0.0,
+    posY: (json['posY'] as num?)?.toDouble() ?? 0.0,
+    scale: (json['scale'] as num?)?.toDouble() ?? 1.0,
+    rotation: (json['rotation'] as num?)?.toDouble() ?? 0.0,
+    opacity: (json['opacity'] as num?)?.toDouble() ?? 1.0,
+    easeIn: (json['easeIn'] as num?)?.toDouble() ?? 0.33,
+    easeOut: (json['easeOut'] as num?)?.toDouble() ?? 0.67,
+  );
 }
 
 class SpeedPoint {
@@ -62,6 +90,20 @@ class SpeedPoint {
     timeMs: timeMs ?? this.timeMs,
     speed: speed ?? this.speed,
     ease: ease ?? this.ease,
+  );
+
+  Map<String, dynamic> toJson() => {
+    'id': id,
+    'timeMs': timeMs,
+    'speed': speed,
+    'ease': ease,
+  };
+
+  factory SpeedPoint.fromJson(Map<String, dynamic> json) => SpeedPoint(
+    id: json['id'],
+    timeMs: (json['timeMs'] as num).toDouble(),
+    speed: (json['speed'] as num?)?.toDouble() ?? 1.0,
+    ease: (json['ease'] as num?)?.toDouble() ?? 0.5,
   );
 }
 
@@ -115,6 +157,34 @@ class ColorGrade {
     lutPath: clearLut ? null : (lutPath ?? this.lutPath),
     lutName: clearLut ? null : (lutName ?? this.lutName),
     lutIntensity: lutIntensity ?? this.lutIntensity,
+  );
+
+  Map<String, dynamic> toJson() => {
+    'contrast': contrast,
+    'highlights': highlights,
+    'shadows': shadows,
+    'temperature': temperature,
+    'tint': tint,
+    'hue': hue,
+    'saturation': saturation,
+    'luminance': luminance,
+    'lutPath': lutPath,
+    'lutName': lutName,
+    'lutIntensity': lutIntensity,
+  };
+
+  factory ColorGrade.fromJson(Map<String, dynamic> json) => ColorGrade(
+    contrast: (json['contrast'] as num?)?.toDouble() ?? 0,
+    highlights: (json['highlights'] as num?)?.toDouble() ?? 0,
+    shadows: (json['shadows'] as num?)?.toDouble() ?? 0,
+    temperature: (json['temperature'] as num?)?.toDouble() ?? 0,
+    tint: (json['tint'] as num?)?.toDouble() ?? 0,
+    hue: (json['hue'] as List?)?.map((e) => (e as num).toDouble()).toList() ?? const [0, 0, 0, 0, 0, 0, 0],
+    saturation: (json['saturation'] as List?)?.map((e) => (e as num).toDouble()).toList() ?? const [0, 0, 0, 0, 0, 0, 0],
+    luminance: (json['luminance'] as List?)?.map((e) => (e as num).toDouble()).toList() ?? const [0, 0, 0, 0, 0, 0, 0],
+    lutPath: json['lutPath'],
+    lutName: json['lutName'],
+    lutIntensity: (json['lutIntensity'] as num?)?.toDouble() ?? 1.0,
   );
 }
 
@@ -235,6 +305,68 @@ class Clip {
     motionTrackingEnabled: motionTrackingEnabled ?? this.motionTrackingEnabled,
     trackedObjectId: trackedObjectId ?? this.trackedObjectId,
   );
+
+  Map<String, dynamic> toJson() => {
+    'id': id,
+    'path': path,
+    'type': type,
+    'trackIndex': trackIndex,
+    'startMs': start.inMilliseconds,
+    'durationMs': duration.inMilliseconds,
+    'trimStartMs': trimStart.inMilliseconds,
+    'trimEndMs': trimEnd.inMilliseconds,
+    'volume': volume,
+    'speed': speed,
+    'speedPoints': speedPoints.map((e) => e.toJson()).toList(),
+    'tempo': tempo,
+    'pitchShift': pitchShift,
+    'isCompressed': isCompressed,
+    'eqBands': eqBands,
+    'opacity': opacity,
+    'blendMode': blendMode,
+    'colorGrade': colorGrade.toJson(),
+    'keyframes': keyframes.map((e) => e.toJson()).toList(),
+    'proxyPath': proxyPath,
+    'isGeneratingProxy': isGeneratingProxy,
+    'spatial3dEnabled': spatial3dEnabled,
+    'spatial3dRotation': spatial3dRotation,
+    'spatial3dWidth': spatial3dWidth,
+    'spatial3dDepth': spatial3dDepth,
+    'spatial3dElevation': spatial3dElevation,
+    'motionTrackingEnabled': motionTrackingEnabled,
+    'trackedObjectId': trackedObjectId,
+  };
+
+  factory Clip.fromJson(Map<String, dynamic> json) => Clip(
+    id: json['id'],
+    path: json['path'],
+    type: json['type'],
+    trackIndex: json['trackIndex'] ?? 0,
+    start: Duration(milliseconds: json['startMs'] ?? 0),
+    duration: Duration(milliseconds: json['durationMs'] ?? 0),
+    trimStart: Duration(milliseconds: json['trimStartMs'] ?? 0),
+    trimEnd: Duration(milliseconds: json['trimEndMs'] ?? json['durationMs'] ?? 0),
+    volume: (json['volume'] as num?)?.toDouble() ?? 1.0,
+    speed: (json['speed'] as num?)?.toDouble() ?? 1.0,
+    speedPoints: (json['speedPoints'] as List?)?.map((e) => SpeedPoint.fromJson(e)).toList() ?? const [],
+    tempo: (json['tempo'] as num?)?.toDouble() ?? 1.0,
+    pitchShift: (json['pitchShift'] as num?)?.toDouble() ?? 0.0,
+    isCompressed: json['isCompressed'] ?? false,
+    eqBands: (json['eqBands'] as List?)?.map((e) => (e as num).toDouble()).toList() ?? const [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+    opacity: (json['opacity'] as num?)?.toDouble() ?? 1.0,
+    blendMode: json['blendMode'] ?? 'normal',
+    colorGrade: json['colorGrade'] != null ? ColorGrade.fromJson(json['colorGrade']) : const ColorGrade(),
+    keyframes: (json['keyframes'] as List?)?.map((e) => Keyframe.fromJson(e)).toList() ?? const [],
+    proxyPath: json['proxyPath'],
+    isGeneratingProxy: json['isGeneratingProxy'] ?? false,
+    spatial3dEnabled: json['spatial3dEnabled'] ?? false,
+    spatial3dRotation: (json['spatial3dRotation'] as num?)?.toDouble() ?? 1.0,
+    spatial3dWidth: (json['spatial3dWidth'] as num?)?.toDouble() ?? 2.0,
+    spatial3dDepth: (json['spatial3dDepth'] as num?)?.toDouble() ?? 0.3,
+    spatial3dElevation: (json['spatial3dElevation'] as num?)?.toDouble() ?? 0.0,
+    motionTrackingEnabled: json['motionTrackingEnabled'] ?? false,
+    trackedObjectId: json['trackedObjectId'],
+  );
 }
 
 // ─── VideoTrack ───────────────────────────────────────────────────────────────
@@ -267,11 +399,30 @@ class VideoTrack {
     isLocked: isLocked ?? this.isLocked,
     height: height ?? this.height,
   );
+
+  Map<String, dynamic> toJson() => {
+    'index': index,
+    'label': label,
+    'isMuted': isMuted,
+    'isSolo': isSolo,
+    'isLocked': isLocked,
+    'height': height,
+  };
+
+  factory VideoTrack.fromJson(Map<String, dynamic> json) => VideoTrack(
+    index: json['index'],
+    label: json['label'],
+    isMuted: json['isMuted'] ?? false,
+    isSolo: json['isSolo'] ?? false,
+    isLocked: json['isLocked'] ?? false,
+    height: (json['height'] as num?)?.toDouble() ?? 64.0,
+  );
 }
 
 // ─── EditorState ─────────────────────────────────────────────────────────────
 
 class EditorState {
+  final String? projectId;
   final List<Clip> videoClips;
   final List<Clip> audioClips;
   final List<VideoTrack> tracks;
@@ -283,6 +434,7 @@ class EditorState {
   final double snapThresholdMs;   // ms within which to snap
 
   EditorState({
+    this.projectId,
     this.videoClips = const [],
     this.audioClips = const [],
     List<VideoTrack>? tracks,
@@ -326,6 +478,7 @@ class EditorState {
         ..sort((a, b) => a.start.compareTo(b.start));
 
   EditorState copyWith({
+    String? projectId,
     List<Clip>? videoClips,
     List<Clip>? audioClips,
     List<VideoTrack>? tracks,
@@ -337,6 +490,7 @@ class EditorState {
     bool? snapEnabled,
     double? snapThresholdMs,
   }) => EditorState(
+    projectId: projectId ?? this.projectId,
     videoClips: videoClips ?? this.videoClips,
     audioClips: audioClips ?? this.audioClips,
     tracks: tracks ?? this.tracks,
@@ -347,6 +501,24 @@ class EditorState {
     snapEnabled: snapEnabled ?? this.snapEnabled,
     snapThresholdMs: snapThresholdMs ?? this.snapThresholdMs,
   );
+
+  Map<String, dynamic> toJson() => {
+    'projectId': projectId,
+    'videoClips': videoClips.map((c) => c.toJson()).toList(),
+    'audioClips': audioClips.map((c) => c.toJson()).toList(),
+    'tracks': tracks.map((t) => t.toJson()).toList(),
+    'playheadPositionMs': playheadPosition.inMilliseconds,
+    'snapEnabled': snapEnabled,
+  };
+
+  factory EditorState.fromJson(Map<String, dynamic> json) => EditorState(
+    projectId: json['projectId'],
+    videoClips: (json['videoClips'] as List?)?.map((e) => Clip.fromJson(e)).toList() ?? const [],
+    audioClips: (json['audioClips'] as List?)?.map((e) => Clip.fromJson(e)).toList() ?? const [],
+    tracks: json['tracks'] != null ? (json['tracks'] as List).map((e) => VideoTrack.fromJson(e)).toList() : null,
+    playheadPosition: Duration(milliseconds: json['playheadPositionMs'] ?? 0),
+    snapEnabled: json['snapEnabled'] ?? true,
+  );
 }
 
 // ─── EditorNotifier ───────────────────────────────────────────────────────────
@@ -354,6 +526,38 @@ class EditorState {
 class EditorNotifier extends Notifier<EditorState> {
   @override
   EditorState build() => EditorState();
+
+  // ── Persistence ────────────────────────────────────────────────────────────
+
+  Future<void> loadProject(String projectId) async {
+    try {
+      final dir = await getApplicationDocumentsDirectory();
+      final file = File('${dir.path}/editor_state_$projectId.json');
+      if (await file.exists()) {
+        final jsonStr = await file.readAsString();
+        final Map<String, dynamic> data = jsonDecode(jsonStr);
+        state = EditorState.fromJson(data);
+      } else {
+        state = EditorState(projectId: projectId);
+      }
+    } catch (e) {
+      debugPrint('Error loading project state: $e');
+      state = EditorState(projectId: projectId);
+    }
+  }
+
+  Future<void> saveProject() async {
+    final projectId = state.projectId;
+    if (projectId == null) return;
+    try {
+      final dir = await getApplicationDocumentsDirectory();
+      final file = File('${dir.path}/editor_state_$projectId.json');
+      final jsonStr = jsonEncode(state.toJson());
+      await file.writeAsString(jsonStr);
+    } catch (e) {
+      debugPrint('Error saving project state: $e');
+    }
+  }
 
   // ── Clip import ────────────────────────────────────────────────────────────
 

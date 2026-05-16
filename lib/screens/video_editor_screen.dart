@@ -152,19 +152,50 @@ class VideoEditorScreen extends ConsumerWidget {
                                 ),
                               ],
                             ),
-                            child: TextButton(
-                              onPressed: () => context.push('/export'),
-                              style: TextButton.styleFrom(
-                                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
-                                minimumSize: Size.zero,
-                                tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                            child: Theme(
+                              data: Theme.of(context).copyWith(
+                                popupMenuTheme: PopupMenuThemeData(
+                                  color: AppTheme.panelBackground,
+                                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                                  textStyle: GoogleFonts.outfit(color: Colors.white, fontWeight: FontWeight.w500),
+                                ),
                               ),
-                              child: Text('Export',
-                                  style: GoogleFonts.outfit(
-                                    color: AppTheme.background,
-                                    fontWeight: FontWeight.bold,
-                                    fontSize: 13,
-                                  )),
+                              child: PopupMenuButton<String>(
+                                offset: const Offset(0, 40),
+                                child: Padding(
+                                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+                                  child: Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      Text('Export',
+                                          style: GoogleFonts.outfit(
+                                            color: AppTheme.background,
+                                            fontWeight: FontWeight.bold,
+                                            fontSize: 13,
+                                          )),
+                                      const SizedBox(width: 4),
+                                      const Icon(Icons.arrow_drop_down, color: AppTheme.background, size: 16),
+                                    ],
+                                  ),
+                                ),
+                                onSelected: (value) async {
+                                  if (value == 'save') {
+                                    await ref.read(editorProvider.notifier).saveProject();
+                                  } else if (value == 'export') {
+                                    context.push('/export');
+                                  }
+                                },
+                                itemBuilder: (context) => [
+                                  const PopupMenuItem(
+                                    value: 'save',
+                                    child: Text('Save Project'),
+                                  ),
+                                  const PopupMenuItem(
+                                    value: 'export',
+                                    child: Text('Export Video'),
+                                  ),
+                                ],
+                              ),
                             ),
                           ),
                         ],

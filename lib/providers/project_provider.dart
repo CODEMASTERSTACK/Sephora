@@ -162,6 +162,15 @@ class ProjectsNotifier extends Notifier<ProjectsState> {
     state = state.copyWith(projects: list);
     _saveToDisk();
   }
+
+  void updateThumbnail(String id, String path) {
+    final list = state.projects.map((p) {
+      if (p.id == id) return p.copyWith(thumbnailPath: path, updatedAt: DateTime.now());
+      return p;
+    }).toList();
+    state = state.copyWith(projects: list);
+    _saveToDisk();
+  }
 }
 
 // ─── Provider ─────────────────────────────────────────────────────────────────

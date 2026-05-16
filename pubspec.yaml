@@ -51,6 +51,7 @@ dependencies:
   dio: ^5.9.2
   gal: ^2.3.2
   permission_handler: ^12.0.1
+  audio_service: ^0.18.15
 
 dev_dependencies:
   flutter_test:

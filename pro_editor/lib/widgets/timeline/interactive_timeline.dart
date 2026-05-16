@@ -37,7 +37,7 @@ class InteractiveTimeline extends ConsumerWidget {
                     height: 50,
                     margin: const EdgeInsets.symmetric(vertical: 4, horizontal: 16),
                     decoration: BoxDecoration(
-                      color: AppTheme.accent.withOpacity(0.3),
+                      color: AppTheme.accent.withValues(alpha: 0.3),
                       borderRadius: BorderRadius.circular(8),
                       border: Border.all(color: AppTheme.accent),
                     ),

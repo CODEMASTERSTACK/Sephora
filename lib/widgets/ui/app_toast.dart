@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:ui';
 import 'package:flutter/material.dart';
 
 /// Custom themed toast system that replaces default SnackBars.
@@ -72,8 +73,8 @@ class _ToastWidgetState extends State<_ToastWidget>
       vsync: this,
       duration: const Duration(milliseconds: 400),
     );
-    _slideAnimation = Tween<double>(begin: -80, end: 0).animate(
-      CurvedAnimation(parent: _controller, curve: Curves.easeOutCubic),
+    _slideAnimation = Tween<double>(begin: -100, end: 0).animate(
+      CurvedAnimation(parent: _controller, curve: Curves.elasticOut),
     );
     _opacityAnimation = Tween<double>(begin: 0, end: 1).animate(
       CurvedAnimation(parent: _controller, curve: Curves.easeOut),
@@ -114,61 +115,93 @@ class _ToastWidgetState extends State<_ToastWidget>
             opacity: _opacityAnimation.value,
             child: GestureDetector(
               onHorizontalDragEnd: (_) => _dismiss(),
-              child: Material(
-                color: Colors.transparent,
-                child: Container(
-                  padding: const EdgeInsets.symmetric(
-                      horizontal: 16, vertical: 14),
-                  decoration: BoxDecoration(
-                    color: config.bgColor,
-                    borderRadius: BorderRadius.circular(14),
-                    border: Border.all(
-                      color: config.borderColor,
-                      width: 1,
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(16),
+                child: BackdropFilter(
+                  filter: ImageFilter.blur(sigmaX: 12, sigmaY: 12),
+                  child: Container(
+                    decoration: BoxDecoration(
+                      color: config.bgColor,
+                      borderRadius: BorderRadius.circular(16),
+                      border: Border.all(
+                        color: config.borderColor,
+                        width: 1,
+                      ),
+                      boxShadow: [
+                        BoxShadow(
+                          color: config.glowColor.withValues(alpha: 0.15),
+                          blurRadius: 24,
+                          offset: const Offset(0, 8),
+                        ),
+                      ],
                     ),
-                    boxShadow: [
-                      BoxShadow(
-                        color: config.glowColor.withValues(alpha: 0.3),
-                        blurRadius: 20,
-                        offset: const Offset(0, 4),
-                      ),
-                    ],
-                  ),
-                  child: Row(
-                    children: [
-                      Container(
-                        width: 32,
-                        height: 32,
-                        decoration: BoxDecoration(
-                          color: config.iconBg,
-                          shape: BoxShape.circle,
-                        ),
-                        child: Icon(
-                          widget.icon ?? config.icon,
-                          color: config.iconColor,
-                          size: 16,
-                        ),
-                      ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: Text(
-                          widget.message,
-                          style: TextStyle(
-                            color: config.textColor,
-                            fontSize: 13,
-                            fontWeight: FontWeight.w500,
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                          child: Row(
+                            children: [
+                              Container(
+                                width: 34,
+                                height: 34,
+                                decoration: BoxDecoration(
+                                  color: config.iconBg,
+                                  shape: BoxShape.circle,
+                                ),
+                                child: Icon(
+                                  widget.icon ?? config.icon,
+                                  color: config.iconColor,
+                                  size: 18,
+                                ),
+                              ),
+                              const SizedBox(width: 14),
+                              Expanded(
+                                child: Text(
+                                  widget.message,
+                                  style: TextStyle(
+                                    color: config.textColor,
+                                    fontSize: 14,
+                                    fontWeight: FontWeight.w600,
+                                    letterSpacing: 0.2,
+                                  ),
+                                  maxLines: 2,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              ),
+                              const SizedBox(width: 12),
+                              GestureDetector(
+                                onTap: _dismiss,
+                                child: Container(
+                                  padding: const EdgeInsets.all(4),
+                                  decoration: BoxDecoration(
+                                    color: Colors.white.withValues(alpha: 0.1),
+                                    shape: BoxShape.circle,
+                                  ),
+                                  child: const Icon(Icons.close, color: Colors.white70, size: 14),
+                                ),
+                              ),
+                            ],
                           ),
-                          maxLines: 2,
-                          overflow: TextOverflow.ellipsis,
                         ),
-                      ),
-                      const SizedBox(width: 8),
-                      GestureDetector(
-                        onTap: _dismiss,
-                        child: Icon(Icons.close,
-                            color: Colors.white38, size: 16),
-                      ),
-                    ],
+                        // Progress bar line at the bottom
+                        TweenAnimationBuilder<double>(
+                          tween: Tween(begin: 1.0, end: 0.0),
+                          duration: widget.duration,
+                          curve: Curves.linear,
+                          builder: (context, value, child) {
+                            return Align(
+                              alignment: Alignment.centerLeft,
+                              child: Container(
+                                height: 3,
+                                width: MediaQuery.of(context).size.width * value,
+                                color: config.glowColor.withValues(alpha: 0.8),
+                              ),
+                            );
+                          },
+                        ),
+                      ],
+                    ),
                   ),
                 ),
               ),
@@ -205,44 +238,44 @@ class _ToastConfig {
 _ToastConfig _toastConfig(ToastType type) {
   switch (type) {
     case ToastType.success:
-      return const _ToastConfig(
-        bgColor: Color(0xFF1A2E1A),
-        borderColor: Color(0xFF2D5A2D),
-        glowColor: Color(0xFF4CAF50),
-        iconBg: Color(0xFF2D5A2D),
-        iconColor: Color(0xFF81C784),
-        textColor: Color(0xFFCCE5CC),
-        icon: Icons.check_circle_outline,
+      return _ToastConfig(
+        bgColor: const Color(0xFF1A2E1A).withValues(alpha: 0.75),
+        borderColor: Colors.greenAccent.withValues(alpha: 0.3),
+        glowColor: const Color(0xFF4CAF50),
+        iconBg: const Color(0xFF2D5A2D).withValues(alpha: 0.5),
+        iconColor: const Color(0xFF81C784),
+        textColor: Colors.white,
+        icon: Icons.check_circle_rounded,
       );
     case ToastType.error:
-      return const _ToastConfig(
-        bgColor: Color(0xFF2E1A1A),
-        borderColor: Color(0xFF5A2D2D),
-        glowColor: Color(0xFFF44336),
-        iconBg: Color(0xFF5A2D2D),
-        iconColor: Color(0xFFE57373),
-        textColor: Color(0xFFE5CCCC),
-        icon: Icons.error_outline,
+      return _ToastConfig(
+        bgColor: const Color(0xFF2E1A1A).withValues(alpha: 0.75),
+        borderColor: Colors.redAccent.withValues(alpha: 0.3),
+        glowColor: const Color(0xFFF44336),
+        iconBg: const Color(0xFF5A2D2D).withValues(alpha: 0.5),
+        iconColor: const Color(0xFFE57373),
+        textColor: Colors.white,
+        icon: Icons.error_rounded,
       );
     case ToastType.warning:
-      return const _ToastConfig(
-        bgColor: Color(0xFF2E2A1A),
-        borderColor: Color(0xFF5A4D2D),
-        glowColor: Color(0xFFFF9800),
-        iconBg: Color(0xFF5A4D2D),
-        iconColor: Color(0xFFFFB74D),
-        textColor: Color(0xFFE5DDCC),
-        icon: Icons.warning_amber_rounded,
+      return _ToastConfig(
+        bgColor: const Color(0xFF2E2A1A).withValues(alpha: 0.75),
+        borderColor: Colors.orangeAccent.withValues(alpha: 0.3),
+        glowColor: const Color(0xFFFF9800),
+        iconBg: const Color(0xFF5A4D2D).withValues(alpha: 0.5),
+        iconColor: const Color(0xFFFFB74D),
+        textColor: Colors.white,
+        icon: Icons.warning_rounded,
       );
     case ToastType.info:
-      return const _ToastConfig(
-        bgColor: Color(0xFF1A1F2E),
-        borderColor: Color(0xFF2D3D5A),
-        glowColor: Color(0xFFD4C462),
-        iconBg: Color(0xFF2D3D5A),
-        iconColor: Color(0xFFD4C462),
-        textColor: Color(0xFFCCD4E5),
-        icon: Icons.info_outline,
+      return _ToastConfig(
+        bgColor: const Color(0xFF1A1F2E).withValues(alpha: 0.75),
+        borderColor: Colors.blueAccent.withValues(alpha: 0.3),
+        glowColor: const Color(0xFF42A5F5),
+        iconBg: const Color(0xFF2D3D5A).withValues(alpha: 0.5),
+        iconColor: const Color(0xFF64B5F6),
+        textColor: Colors.white,
+        icon: Icons.info_rounded,
       );
   }
 }

@@ -5,12 +5,14 @@ import '../widgets/timeline/timeline_view.dart';
 import '../widgets/preview/audio_preview.dart';
 import '../theme/app_theme.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../providers/editor_provider.dart';
 
-class AudioEditorScreen extends StatelessWidget {
+class AudioEditorScreen extends ConsumerWidget {
   const AudioEditorScreen({super.key});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     return Scaffold(
       backgroundColor: AppTheme.background,
       body: SafeArea(
@@ -51,20 +53,49 @@ class AudioEditorScreen extends StatelessWidget {
                         ),
                       ],
                     ),
-                    child: TextButton(
-                      onPressed: () => context.push('/export?isAudioOnly=true'),
-                      style: TextButton.styleFrom(
-                        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
-                        minimumSize: Size.zero,
-                        tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                      ),
-                      child: Text(
-                        'Export',
-                        style: GoogleFonts.outfit(
-                          color: AppTheme.background,
-                          fontWeight: FontWeight.bold,
-                          fontSize: 14,
+                    child: Theme(
+                      data: Theme.of(context).copyWith(
+                        popupMenuTheme: PopupMenuThemeData(
+                          color: AppTheme.panelBackground,
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                          textStyle: GoogleFonts.outfit(color: Colors.white, fontWeight: FontWeight.w500),
                         ),
+                      ),
+                      child: PopupMenuButton<String>(
+                        offset: const Offset(0, 40),
+                        child: Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Text('Export',
+                                  style: GoogleFonts.outfit(
+                                    color: AppTheme.background,
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 13,
+                                  )),
+                              const SizedBox(width: 4),
+                              const Icon(Icons.arrow_drop_down, color: AppTheme.background, size: 16),
+                            ],
+                          ),
+                        ),
+                        onSelected: (value) async {
+                          if (value == 'save') {
+                            await ref.read(audioEditorProvider.notifier).saveProject();
+                          } else if (value == 'export') {
+                            context.push('/export?isAudioOnly=true');
+                          }
+                        },
+                        itemBuilder: (context) => [
+                          const PopupMenuItem(
+                            value: 'save',
+                            child: Text('Save Project'),
+                          ),
+                          const PopupMenuItem(
+                            value: 'export',
+                            child: Text('Export Audio'),
+                          ),
+                        ],
                       ),
                     ),
                   ),

@@ -1,16 +1,19 @@
+import 'dart:io';
+import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:image_picker/image_picker.dart';
 import '../providers/project_provider.dart';
-import '../widgets/ui/app_toast.dart';
+import '../providers/editor_provider.dart';
+
 
 // ─── Color Palette (matches reference) ────────────────────────────────────────
 const _kBg = Color(0xFF1A1C14);
 const _kCard = Color(0xFF2A2C22);
 const _kAccent = Color(0xFFD4C462);
-const _kChipBg = Color(0xFF2A2C22);
-const _kChipActive = Color(0xFFF5F0E0);
+
 const _kTextPrimary = Color(0xFFF5F0E0);
 const _kTextSecondary = Color(0xFF8A8A78);
 
@@ -101,12 +104,17 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     );
   }
 
-  void _createAndNavigate(BuildContext ctx, TextEditingController ctrl, String type) {
+  void _createAndNavigate(BuildContext ctx, TextEditingController ctrl, String type) async {
     final name = ctrl.text.trim().isEmpty ? (type == 'video' ? 'Untitled Video' : 'Untitled Audio') : ctrl.text.trim();
     Navigator.pop(ctx);
-    ref.read(projectsProvider.notifier).createProject(name, type);
-    AppToast.show(context, message: '"$name" created', type: ToastType.success);
-    context.push(type == 'video' ? '/video-editor' : '/audio-editor');
+    final project = ref.read(projectsProvider.notifier).createProject(name, type);
+    if (type == 'video') {
+      await ref.read(editorProvider.notifier).loadProject(project.id);
+      if (mounted) context.push('/video-editor');
+    } else {
+      await ref.read(audioEditorProvider.notifier).loadProject(project.id);
+      if (mounted) context.push('/audio-editor');
+    }
   }
 
   // ── Project Actions ───────────────────────────────────────────────────────
@@ -120,6 +128,10 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
           Text(project.name, style: GoogleFonts.outfit(color: _kTextPrimary, fontSize: 16, fontWeight: FontWeight.bold)),
           const SizedBox(height: 16),
           ListTile(
+            leading: const Icon(Icons.image_outlined, color: _kAccent), title: Text('Set Thumbnail', style: GoogleFonts.outfit(color: _kTextPrimary)),
+            onTap: () { Navigator.pop(context); _setThumbnail(project); },
+          ),
+          ListTile(
             leading: const Icon(Icons.edit, color: _kAccent), title: Text('Rename', style: GoogleFonts.outfit(color: _kTextPrimary)),
             onTap: () { Navigator.pop(context); _renameProject(project); },
           ),
@@ -131,6 +143,14 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
         ]),
       ),
     );
+  }
+
+  Future<void> _setThumbnail(Project project) async {
+    final picker = ImagePicker();
+    final image = await picker.pickImage(source: ImageSource.gallery);
+    if (image != null) {
+      ref.read(projectsProvider.notifier).updateThumbnail(project.id, image.path);
+    }
   }
 
   void _renameProject(Project project) {
@@ -147,7 +167,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
         actions: [
           TextButton(onPressed: () => Navigator.pop(ctx), child: Text('Cancel', style: GoogleFonts.outfit(color: _kTextSecondary))),
           FilledButton(style: FilledButton.styleFrom(backgroundColor: _kAccent, foregroundColor: _kBg),
-            onPressed: () { Navigator.pop(ctx); if (ctrl.text.trim().isNotEmpty) { ref.read(projectsProvider.notifier).renameProject(project.id, ctrl.text.trim()); AppToast.show(context, message: 'Renamed to "${ctrl.text.trim()}"', type: ToastType.success); } },
+            onPressed: () { Navigator.pop(ctx); if (ctrl.text.trim().isNotEmpty) { ref.read(projectsProvider.notifier).renameProject(project.id, ctrl.text.trim()); } },
             child: Text('Save', style: GoogleFonts.outfit(fontWeight: FontWeight.bold))),
         ],
       ),
@@ -165,7 +185,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
         actions: [
           TextButton(onPressed: () => Navigator.pop(ctx), child: Text('Cancel', style: GoogleFonts.outfit(color: _kTextSecondary))),
           FilledButton(style: FilledButton.styleFrom(backgroundColor: Colors.redAccent),
-            onPressed: () { Navigator.pop(ctx); ref.read(projectsProvider.notifier).deleteProject(project.id); AppToast.show(context, message: 'Project deleted', type: ToastType.error); },
+            onPressed: () { Navigator.pop(ctx); ref.read(projectsProvider.notifier).deleteProject(project.id); },
             child: Text('Delete', style: GoogleFonts.outfit(fontWeight: FontWeight.bold, color: Colors.white))),
         ],
       ),
@@ -334,13 +354,16 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     final dateStr = '${project.updatedAt.day.toString().padLeft(2, '0')}.${project.updatedAt.month.toString().padLeft(2, '0')}.${project.updatedAt.year}';
     final timeStr = '${project.updatedAt.hour.toString().padLeft(2, '0')}:${project.updatedAt.minute.toString().padLeft(2, '0')}';
     
-    // Seed for placeholder image
-    final seed = project.id.hashCode.abs() % 1000;
-
     return GestureDetector(
-      onTap: () {
+      onTap: () async {
         ref.read(projectsProvider.notifier).updateProjectTimestamp(project.id);
-        context.push(isVideo ? '/video-editor' : '/audio-editor');
+        if (isVideo) {
+          await ref.read(editorProvider.notifier).loadProject(project.id);
+          if (mounted) context.push('/video-editor');
+        } else {
+          await ref.read(audioEditorProvider.notifier).loadProject(project.id);
+          if (mounted) context.push('/audio-editor');
+        }
       },
       child: Container(
         height: 220,
@@ -350,15 +373,17 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
         ),
         child: Stack(
           children: [
-            // Background Image
+            // Background Image or Default
             Positioned.fill(
               child: ClipRRect(
                 borderRadius: BorderRadius.circular(48),
-                child: Image.network(
-                  'https://picsum.photos/seed/$seed/600/400',
-                  fit: BoxFit.cover,
-                  errorBuilder: (_, __, ___) => CustomPaint(painter: _CardPatternPainter(isVideo: isVideo)),
-                ),
+                child: project.thumbnailPath != null && File(project.thumbnailPath!).existsSync()
+                    ? Image.file(
+                        File(project.thumbnailPath!),
+                        fit: BoxFit.cover,
+                        errorBuilder: (_, __, ___) => _defaultThumbnail(isVideo),
+                      )
+                    : _defaultThumbnail(isVideo),
               ),
             ),
             
@@ -370,11 +395,13 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                   decoration: BoxDecoration(
                     gradient: LinearGradient(
                       begin: Alignment.topCenter,
-                      end: Alignment.center,
+                      end: Alignment.bottomCenter,
                       colors: [
-                        Colors.black.withValues(alpha: 0.3),
+                        Colors.black.withValues(alpha: 0.5),
                         Colors.transparent,
+                        Colors.black.withValues(alpha: 0.3),
                       ],
+                      stops: const [0.0, 0.5, 1.0],
                     ),
                   ),
                 ),
@@ -454,25 +481,90 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
       ),
     );
   }
+
+  Widget _defaultThumbnail(bool isVideo) {
+    if (isVideo) {
+      return Container(
+        color: const Color(0xFF1E1E1E),
+        child: Center(
+          child: Container(
+            padding: const EdgeInsets.all(24),
+            decoration: BoxDecoration(
+              color: Colors.black.withValues(alpha: 0.3),
+              shape: BoxShape.circle,
+            ),
+            child: const Icon(Icons.play_circle_fill_rounded, color: Colors.white54, size: 64),
+          ),
+        ),
+      );
+    } else {
+      return Container(
+        color: const Color(0xFF1E1E1E),
+        child: Center(
+          child: _AnimatedWaveform(),
+        ),
+      );
+    }
+  }
 }
 
-// ─── Card Pattern Painter (Fallback if image fails) ───────────────────────────
-class _CardPatternPainter extends CustomPainter {
-  final bool isVideo;
-  _CardPatternPainter({required this.isVideo});
+// ─── Animated Waveform for Audio Projects ──────────────────────────────────────
+class _AnimatedWaveform extends StatefulWidget {
+  @override
+  State<_AnimatedWaveform> createState() => _AnimatedWaveformState();
+}
+
+class _AnimatedWaveformState extends State<_AnimatedWaveform> with SingleTickerProviderStateMixin {
+  late AnimationController _controller;
 
   @override
-  void paint(Canvas canvas, Size size) {
-    final paint = Paint()
-      ..color = (isVideo ? Colors.amber : Colors.purple).withValues(alpha: 0.04)
-      ..strokeWidth = 1
-      ..style = PaintingStyle.stroke;
-    for (double i = 0; i < size.width + size.height; i += 30) {
-      canvas.drawLine(Offset(i, 0), Offset(0, i), paint);
-    }
+  void initState() {
+    super.initState();
+    _controller = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 1200),
+    )..repeat(reverse: true);
   }
 
   @override
-  bool shouldRepaint(covariant _CardPatternPainter old) => old.isVideo != isVideo;
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: List.generate(7, (index) {
+        return AnimatedBuilder(
+          animation: _controller,
+          builder: (context, child) {
+            // Create a staggered wave effect using sine wave
+            final double phaseOffset = index * 0.5;
+            final double value = math.sin((_controller.value * 2 * math.pi) + phaseOffset);
+            final double height = 30 + (30 * value.abs()); // Height varies between 30 and 60
+            
+            return Container(
+              margin: const EdgeInsets.symmetric(horizontal: 6),
+              width: 12,
+              height: height,
+              decoration: BoxDecoration(
+                color: _kAccent.withValues(alpha: 0.8),
+                borderRadius: BorderRadius.circular(6),
+                boxShadow: [
+                  BoxShadow(
+                    color: _kAccent.withValues(alpha: 0.3),
+                    blurRadius: 8,
+                    offset: const Offset(0, 2),
+                  ),
+                ],
+              ),
+            );
+          },
+        );
+      }),
+    );
+  }
 }
 
